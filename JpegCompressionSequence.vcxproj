@@ -113,7 +113,6 @@
   <ItemGroup>
     <ClCompile Include="dct.c" />
     <ClCompile Include="jpeg.c" />
-    <ClCompile Include="readBmpFile.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dct.h" />
