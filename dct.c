@@ -52,7 +52,9 @@ static inline float alfa(int u)
 }
 
 
-/* This function compute only one block 8x8 for one color in pixel*/
+/* This function compute only one block 8x8 for one color in pixel
+   This also comupte quatization and save outup in zigzag order
+*/
 void dct_for_one_block(unsigned char *data_in, short *data_out)
 {
 	int u, v, i, j;

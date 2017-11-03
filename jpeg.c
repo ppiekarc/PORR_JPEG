@@ -6,8 +6,21 @@
 
 #include <stdio.h>
 #include <windows.h>
+#include <math.h>
 #include "dct.h"
 
+
+struct AC_Symbol {
+	int runlenght;
+	int size;
+	short amplitude;
+};
+
+
+struct AC_Symbols {
+	struct AC_Symbol *block;
+	int size;
+};
 
 /* That define means we use 8x8 block of discrete cosinus transform*/
 #define K 8
@@ -40,19 +53,70 @@ void prepare_test1(void)
 }
 
 
+/*wstep do kodowania skladowej zmiennej*/
+struct AC_Symbols ac_block_code(short *ac)
+{
+	int runlenght = 0, size = 0;
+	struct AC_Symbols symbols_ac;
+
+
+	struct AC_Symbol *ac_block = malloc((K * K - 1) * sizeof(struct AC_Symbol));
+	for (int i = 1; i < 64; i++) {
+		if (runlenght == 16) {
+			ac_block[size].runlenght = 15;
+			ac_block[size].amplitude = 0;
+			ac_block[size].size = 0;
+			runlenght = 0;
+			size++;
+			continue;
+		}
+
+		if (ac[i] == 0)
+			runlenght++;
+		else {
+			ac_block[size].runlenght = runlenght;
+			ac_block[size].amplitude = ac[i];
+			ac_block[size].size = ceil(log2(abs(ac[i]) + 1));
+			runlenght = 0;
+			size++;
+		}
+	}
+
+	ac_block[size].runlenght = 0;
+	ac_block[size].size = 0;
+	ac_block[size].amplitude = 0;
+	size++;
+
+	symbols_ac.block = ac_block;
+	symbols_ac.size = size;
+
+	return symbols_ac;
+}
 
 int main()
 {
 	int i;
+	struct AC_Symbols symbols;
 
 	prepare_test1();
 
 	short *data_out = malloc(64 * sizeof(short));
 	dct_for_one_block(example, data_out);
+	symbols = ac_block_code(data_out);
 
-	for (i = 0; i < 64; i++)
-		printf(" %d ", data_out[i]);
+	//for (i = 0; i < 64; i++)
+	//	printf(" %d ", data_out[i]);
 
+	for (i = 0; i < symbols.size; i++) {
+		printf("(%d, %d) (%d) ", 
+			symbols.block[i].runlenght, 
+			symbols.block[i].size, 
+			symbols.block[i].amplitude);
+
+	}
+
+
+	free(symbols.block);
 	free(data_out);
 	system("PAUSE");
 }
