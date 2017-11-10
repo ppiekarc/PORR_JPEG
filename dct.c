@@ -32,7 +32,8 @@ static float cos_table[8][8] =
 };
 
 
-static int zigzag_map8x8[8 * 8] = {
+static int zigzag_map8x8[8 * 8] = 
+{
 	0, 1, 5, 6, 14, 15, 27, 28,
 	2, 4, 7, 13, 16, 26, 29, 42,
 	3, 8, 12, 17, 25, 30, 41, 43,
@@ -78,3 +79,50 @@ void dct_for_one_block(unsigned char *data_in, short *data_out)
 	}
 
 }
+
+
+
+/* Zwracana warosc przez funkje zawiera wskanik na tablice zawierajaca 
+   wynik transformaty cosinusowej dla kazdego bloku. W tej funkcji alokowana 
+   jest pamiec na kazdy blok, dlatego nalezy zwolnic pamiec ze wszystkich elementow
+   zwracaniej tablicy, a nastepnie zwolnic zwracana tablice.
+   
+   Funckja oblicza transformaty dla jednego koloru.
+   */
+short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks)
+{
+	*num_blocks = (int)roundf((w * h) / 64);
+	unsigned char **d_in = malloc(*num_blocks * sizeof(unsigned char *));
+	short **data_out = malloc(*num_blocks * sizeof(short *));
+
+
+	/* alokacja pamieci dla kazdego bloku,
+	   przed zakonczeniem programu nalezy ja zwolnic
+		(nie jest to zwalnianie w tej funkcji)*/
+	for (int i = 0; i < *num_blocks; i++) {
+		data_out[i] = malloc(64 * sizeof(short));
+		d_in[i] = malloc(64 * sizeof(unsigned char));
+	}
+		
+	
+	/* @TODO Podzial prawdopodonie nie dziala jeszcze dla obrazkow,
+	   które nie sa dokladnie wielokrotnosciami wielkosci bloku 8x8*/
+
+	/* Ta petla realizuje podzial na bloki, 
+		kazdy blok jest elementem tablicy d_in*/
+	for (int i = 0; i < 8; i++) {
+		for (int j = 0; j < 8; j++) {
+			for (int n = 0; n < *num_blocks; n++)
+				d_in[n][i + (j * 8)] = data_in[i + (n * 8) + (w * j)];
+		}
+	}
+
+	/* obliczenie transformaty cosinusowej dla kazdego bloku*/
+	for (int i = 0; i < *num_blocks; i++) {
+		dct_for_one_block(d_in[i], data_out[i]);
+		free(d_in[i]);
+	}
+
+	return data_out;
+}
+

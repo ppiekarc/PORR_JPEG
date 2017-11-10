@@ -39,21 +39,28 @@ static unsigned char example[64] =
 };
 
 /* This will contain enter test data*/
-static unsigned char test1[3 * 64];
+static unsigned char test1[4 * 64];
 
-/*This function write value of example to test1 that contains the same value on Y, Cb and Cr*/
+/*This function prepare test data, which contain 4 blocks 8x8 (example []) 
+ (now only for one color), with it we could test divide to blocks		*/
 void prepare_test1(void)
 {
 	int i, j;
 
-	for (i = 0; i < 64; i++) {
-		for (j = 0; j < 3; j++)
-			test1[3 * i + j] = example[i];
+	for (i = 0; i < 8; ++i) {
+		for (j = 0; j < 8; ++j) {
+			test1[i + 16 * j] = example[i + 8 * j];
+			test1[(i + 8) + 16 * j] = example[i + 8 * j];
+			test1[(i + 128) + 16 * j] = example[i + 8 * j];
+			test1[(i + 128 + 8) + 16 * j] = example[i + 8 * j];
+		}
 	}
+
 }
 
 
-/*wstep do kodowania skladowej zmiennej*/
+/*wstep do kodowania skladowej zmiennej
+	dla jednego koloru	*/
 struct AC_Symbols ac_block_code(short *ac)
 {
 	int runlenght = 0, size = 0;
@@ -93,33 +100,59 @@ struct AC_Symbols ac_block_code(short *ac)
 	return symbols_ac;
 }
 
+/* wtep do kodowanie skaldowej stalej
+	dla jednego koloru*/
+short *dc_code(short **data, int num_blocks)
+{
+	short *delta = malloc(num_blocks * sizeof(short));
+
+	delta[0] = data[0][0];
+
+	for (int i = 1; i < num_blocks; i++) 
+		delta[i] = data[i][0] - data[i - 1][0];
+
+	return delta;
+}
+
 int main()
 {
-	int i;
-	struct AC_Symbols symbols;
+	int i, number_of_blocks;
+	struct AC_Symbols *symbols;
+	short *dc;
+
 
 	prepare_test1();
 
-	short *data_out = malloc(64 * sizeof(short));
-	dct_for_one_block(example, data_out);
-	symbols = ac_block_code(data_out);
+	short **data_out;
+	data_out = dct_for_blocks(test1, 16, 16, &number_of_blocks);
+	symbols = malloc(number_of_blocks * sizeof(struct AC_Symbols));
 
-	//for (i = 0; i < 64; i++)
-	//	printf(" %d ", data_out[i]);
+	dc = dc_code(data_out, number_of_blocks);
+	for (int i = 0; i < number_of_blocks; i++)
+		symbols[i] = ac_block_code(data_out[i]);
 
-	for (i = 0; i < symbols.size; i++) {
+
+	printf("skladowa stala: \n");
+	for (i = 0; i < number_of_blocks; i++)
+		printf(" %d ", dc[i]);
+
+
+	printf("skladowa zmienna: \n");
+	for (i = 0; i < symbols[0].size; i++) {
 		printf("(%d, %d) (%d) ", 
-			symbols.block[i].runlenght, 
-			symbols.block[i].size, 
-			symbols.block[i].amplitude);
-
+			symbols[0].block[i].runlenght, 
+			symbols[0].block[i].size, 
+			symbols[0].block[i].amplitude);
 	}
 
+	for (int i = 0; i < number_of_blocks; i++) {
+		free(symbols[i].block);
+		free(data_out[i]);
+	}
 
-	free(symbols.block);
+	free(symbols);
+	free(dc);
 	free(data_out);
 	system("PAUSE");
 }
-
-
 
