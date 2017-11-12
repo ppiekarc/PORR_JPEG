@@ -2,13 +2,14 @@
 # define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#pragma once
-
 #include <stdio.h>
-#include <windows.h>
+#include <stdlib.h>
 #include <math.h>
 #include "dct.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 
 struct AC_Symbol {
 	int runlenght;
@@ -114,7 +115,7 @@ short *dc_code(short **data, int num_blocks)
 	return delta;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 	int i, number_of_blocks;
 	struct AC_Symbols *symbols;
@@ -153,6 +154,11 @@ int main()
 	free(symbols);
 	free(dc);
 	free(data_out);
+
+#if defined(_WIN32) || defined(_WIN64)
 	system("PAUSE");
+#endif
+
+	return 0;
 }
 

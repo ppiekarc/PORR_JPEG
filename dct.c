@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 /* That define means we use 8x8 block of discrete cosinus transform*/
@@ -106,7 +107,7 @@ short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks)
 		
 	
 	/* @TODO Podzial prawdopodonie nie dziala jeszcze dla obrazkow,
-	   które nie sa dokladnie wielokrotnosciami wielkosci bloku 8x8*/
+	   ktï¿½re nie sa dokladnie wielokrotnosciami wielkosci bloku 8x8*/
 
 	/* Ta petla realizuje podzial na bloki, 
 		kazdy blok jest elementem tablicy d_in*/
