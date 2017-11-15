@@ -101,13 +101,15 @@ short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks)
 	   przed zakonczeniem programu nalezy ja zwolnic
 		(nie jest to zwalnianie w tej funkcji)*/
 	for (int i = 0; i < *num_blocks; i++) {
-		data_out[i] = malloc(64 * sizeof(short));
-		d_in[i] = malloc(64 * sizeof(unsigned char));
+		data_out[i] = calloc(64, sizeof(short));
+		d_in[i] = calloc(64, sizeof(unsigned char));
 	}
 		
 	
 	/* @TODO Podzial prawdopodonie nie dziala jeszcze dla obrazkow,
-	   kt�re nie sa dokladnie wielokrotnosciami wielkosci bloku 8x8*/
+	   ktore nie sa dokladnie wielokrotnosciami wielkosci bloku 8x8
+
+	   chociaz calloc moze zalatwic sprawe*/
 
 	/* Ta petla realizuje podzial na bloki, 
 		kazdy blok jest elementem tablicy d_in*/
@@ -124,6 +126,7 @@ short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks)
 		free(d_in[i]);
 	}
 
+	free(d_in);
 	return data_out;
 }
 
