@@ -63,22 +63,20 @@ void dct_for_one_block(unsigned char *data_in, short *data_out)
 	float G;
 	short converted_value;
 
-
-	for (u = 0; u < 8; u++) {
-		for (v = 0; v < 8; v++) {
-			G = 0;
-			for (i = 0; i < 8; i++) {
-				for (j = 0; j < 8; j++) {
-					converted_value = data_in[i + (8 * j)] - 128;
-					G += converted_value * cos_table[i][u] * cos_table[j][v];
+			for (u = 0; u < 8; u++) {
+				for (v = 0; v < 8; v++) {
+					G = 0;
+					for (i = 0; i < 8; i++) {
+						for (j = 0; j < 8; j++) {
+							converted_value = data_in[i + (8 * j)] - 128;
+							G += converted_value * cos_table[i][u] * cos_table[j][v];
+						}
+					}
+					G = G * alfa(u) * alfa(v);
+					int index_zigzag = zigzag_map8x8[u + (v * 8)];
+					data_out[index_zigzag] = roundf(G / (4 * coeff[u + (v * 8)]));
 				}
 			}
-			G = G * alfa(u) * alfa(v);
-			int index_zigzag = zigzag_map8x8[u + (v * 8)];
-			data_out[index_zigzag] = roundf(G / (4 * coeff[u + (v * 8)]));
-		}
-	}
-
 }
 
 
@@ -121,9 +119,15 @@ short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks)
 	}
 
 	/* obliczenie transformaty cosinusowej dla kazdego bloku*/
-	for (int i = 0; i < *num_blocks; i++) {
-		dct_for_one_block(d_in[i], data_out[i]);
-		free(d_in[i]);
+	int i;
+
+#pragma omp parallel private(i) shared(d_in, data_out, num_blocks) num_threads(4)
+	{
+#pragma omp for schedule (static)
+			for (i = 0; i < *num_blocks; i++) {
+				dct_for_one_block(d_in[i], data_out[i]);
+				free(d_in[i]);
+			}
 	}
 
 	free(d_in);

@@ -155,32 +155,32 @@ struct Image_rgb read_bmp_file(char *filename)
 	dla jednego koloru	*/
 struct AC_Symbols ac_block_code(short *ac)
 {
-	int runlenght = 0, size = 0;
+	int runlenght = 0, size = 0, i;
 	struct AC_Symbols symbols_ac;
 
 
 	struct AC_Symbol *ac_block = malloc((K * K - 1) * sizeof(struct AC_Symbol));
-	for (int i = 1; i < 64; i++) {
-		if (runlenght == 16) {
-			ac_block[size].runlenght = 15;
-			ac_block[size].amplitude = 0;
-			ac_block[size].size = 0;
-			runlenght = 0;
-			size++;
-			continue;
-		}
 
-		if (ac[i] == 0)
-			runlenght++;
-		else {
-			ac_block[size].runlenght = runlenght;
-			ac_block[size].amplitude = ac[i];
-			ac_block[size].size = ceil(log2(abs(ac[i]) + 1));
-			runlenght = 0;
-			size++;
-		}
-	}
+		for (i = 1; i < 64; i++) {
+			if (runlenght == 16) {
+				ac_block[size].runlenght = 15;
+				ac_block[size].amplitude = 0;
+				ac_block[size].size = 0;
+				runlenght = 0;
+				size++;
+				continue;
+			}
 
+			if (ac[i] == 0)
+				runlenght++;
+			else {
+				ac_block[size].runlenght = runlenght;
+				ac_block[size].amplitude = ac[i];
+				ac_block[size].size = ceil(log2(abs(ac[i]) + 1));
+				runlenght = 0;
+				size++;
+			}
+		}
 	ac_block[size].runlenght = 0;
 	ac_block[size].size = 0;
 	ac_block[size].amplitude = 0;
@@ -206,19 +206,14 @@ short *dc_code(short **data, int num_blocks)
 	return delta;
 }
 
-int main(int argc, char *argv[])
+void test_fun()
 {
 	int i, number_of_blocks;
 	struct AC_Symbols *symbols;
 	short *dc;
-	app_timer_t start, stop;
-
+	short **data_out;
 
 	prepare_test1();
-
-	timer(&start);
-
-	short **data_out;
 	data_out = dct_for_blocks(test1, 16, 16, &number_of_blocks);
 	symbols = malloc(number_of_blocks * sizeof(struct AC_Symbols));
 
@@ -234,9 +229,9 @@ int main(int argc, char *argv[])
 
 	printf("skladowa zmienna: \n");
 	for (i = 0; i < symbols[0].size; i++) {
-		printf("(%d, %d) (%d) ", 
-			symbols[0].block[i].runlenght, 
-			symbols[0].block[i].size, 
+		printf("(%d, %d) (%d) ",
+			symbols[0].block[i].runlenght,
+			symbols[0].block[i].size,
 			symbols[0].block[i].amplitude);
 	}
 
@@ -245,13 +240,59 @@ int main(int argc, char *argv[])
 		free(data_out[i]);
 	}
 
-	timer(&stop);
-
-	elapsed_time(start, stop);
-
 	free(symbols);
 	free(dc);
 	free(data_out);
+}
+
+void test_with_image()
+{
+	int i, number_of_blocks;
+	struct AC_Symbols *symbols;
+	short *dc;
+	short **data_out;
+	struct Image_rgb image;
+
+	image = read_bmp_file("tahaa.bmp");
+	/* obliczenie transforamy cosinusowej razem z podzialem na bloki*/
+	data_out = dct_for_blocks(image.R, image.width, image.height, &number_of_blocks);
+
+
+	symbols = malloc(number_of_blocks * sizeof(struct AC_Symbols));
+
+	/* wstep do kodowania skladowych stalych i zmiennych*/
+	dc = dc_code(data_out, number_of_blocks);
+
+
+#pragma omp parallel private(i) shared(symbols) num_threads(4)
+	{
+#pragma omp for schedule (static)
+		for (i = 0; i < number_of_blocks; i++)
+			symbols[i] = ac_block_code(data_out[i]);
+	}
+
+
+	/*zwolnienie pamieci*/
+	for (i = 0; i < number_of_blocks; i++) {
+		free(symbols[i].block);
+		free(data_out[i]);
+	}
+	free(symbols);
+	free(dc);
+	free(data_out);
+	free(image.R);
+	free(image.B);
+	free(image.G);
+}
+
+int main(int argc, char *argv[])
+{
+	app_timer_t start, stop;
+	timer(&start);
+	//test_fun();
+	test_with_image();
+	timer(&stop);
+	elapsed_time(start, stop);
 
 #if defined(_WIN32) || defined(_WIN64)
 	system("PAUSE");
