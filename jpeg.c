@@ -23,6 +23,14 @@ struct AC_Symbols {
 	int size;
 };
 
+struct Image_rgb {
+	unsigned char *R;
+	unsigned char *B;
+	unsigned char *G;
+	int width;
+	int height;
+};
+
 /* That define means we use 8x8 block of discrete cosinus transform*/
 #define K 8
 
@@ -101,6 +109,47 @@ void prepare_test1(void)
 
 }
 
+
+struct Image_rgb read_bmp_file(char *filename)
+{
+	int i;
+	FILE *f = fopen(filename, "rb");
+	unsigned char info[54];
+	unsigned char *data;
+	struct Image_rgb image;
+
+	fread(info, sizeof(unsigned char), 54, f);  // read the 54-byte header
+
+	/* extract image height and width from header */
+	int width = *(int*)&info[18];
+	int height = *(int*)&info[22];
+	int s;
+	int size = width * height;
+	data = (unsigned char *)malloc(3 * size * sizeof(unsigned char)); // allocate 3 bytes per pixel
+	s = fread(data, sizeof(unsigned char), 3 * size, f); // read the rest of the data at once'
+
+	fclose(f);
+
+	image.width = width;
+	image.height = height;
+	image.R = (unsigned char *)malloc(size * sizeof(unsigned char));
+	image.B = (unsigned char *)malloc(size * sizeof(unsigned char));
+	image.G = (unsigned char *)malloc(size * sizeof(unsigned char));
+
+	for (i = 0; i < (3 * size); i += 3)
+	{
+		image.B[i / 3] = data[i];
+		image.G[i / 3] = data[i + 1];
+		image.R[i / 3] = data[i + 2];
+	}
+
+	free(data);
+	/* Now data should contain the(R, G,B) values of the pixels.
+
+	/*In the last part, the swap between every first and third pixel is done
+	beceouse windows stores the color values as (B, G, R) triples not (R, G, B)*/
+	return image;
+}
 
 /*wstep do kodowania skladowej zmiennej
 	dla jednego koloru	*/
