@@ -1,4 +1,4 @@
 #pragma once
 
 void dct_for_one_block(unsigned char *data_in, short *data_out);
-short **dct_for_blocks(unsigned char *data_in, int w, int h, int *num_blocks);
+int16_t **dct_for_blocks(const int8_t *const data_in, const size_t width, const size_t height, int *const num_blocks, const float *dt);
