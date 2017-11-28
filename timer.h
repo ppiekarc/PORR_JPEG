@@ -20,6 +20,6 @@ typedef struct timespec app_timer_t;
 
 #define timer(t_ptr) clock_gettime(CLOCK_MONOTONIC, t_ptr)
 
-void elapsed_time(app_timer_t start, app_timer_t stop);
+double elapsed_time(app_timer_t start, app_timer_t stop);
 
 #endif

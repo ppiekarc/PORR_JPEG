@@ -194,21 +194,21 @@ void test_with_image()
 	free(image);
 }
 
-int main(int argc, char *argv[])
-{
-	app_timer_t start, stop;
-	timer(&start);
-	//test_fun();
-//	test_with_image();
-//	test_with_grayscale();
-	test_with_rgb();
-	timer(&stop);
-	elapsed_time(start, stop);
-
-#if defined(_WIN32) || defined(_WIN64)
-	system("PAUSE");
-#endif
-
-	return 0;
-}
-
+//int main(int argc, char *argv[])
+//{
+//	app_timer_t start, stop;
+//	timer(&start);
+//	//test_fun();
+////	test_with_image();
+////	test_with_grayscale();
+//	test_with_rgb();
+//	timer(&stop);
+//	elapsed_time(start, stop);
+//
+//#if defined(_WIN32) || defined(_WIN64)
+//	system("PAUSE");
+//#endif
+//
+//	return 0;
+//}
+//
