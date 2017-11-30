@@ -34,7 +34,7 @@ static void precalculate_YCbCr_tables()
     ycbcrtables_precalculated = true;
 }
 
-const ImageYCC const *convert(const ImageRGB* const imageRGB) {
+const ImageYCC const *convertImage(const ImageRGB *imageRGB) {
 
     if (ycbcrtables_precalculated == false) {
         precalculate_YCbCr_tables();
@@ -50,8 +50,7 @@ const ImageYCC const *convert(const ImageRGB* const imageRGB) {
     imageYCC->Cb = malloc(bitmap_size);
     imageYCC->Cr = malloc(bitmap_size);
     
-    for (int i = 0; i < bitmap_size; i++)
-    {
+    for (size_t i = 0; i < bitmap_size; i++) {
         uint8_t R = imageRGB->R[i];
         uint8_t G = imageRGB->G[i];
         uint8_t B = imageRGB->B[i];

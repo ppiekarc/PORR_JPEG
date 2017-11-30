@@ -58,7 +58,7 @@ const ImageRGB const *load_true_rgb_bitmap(const char *const filename)
     return image;
 }
 
-void release(const ImageRGB *const imageRGB) {
+void release_bitmap(ImageRGB *imageRGB) {
     if (!imageRGB) {
         return;
     }

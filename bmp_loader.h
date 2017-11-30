@@ -34,4 +34,4 @@ typedef struct {
 } ImageRGB;
 
 const ImageRGB const *load_true_rgb_bitmap(const char *filename);
-void release(const ImageRGB *imageRGB);
+void release_bitmap(ImageRGB *imageRGB);

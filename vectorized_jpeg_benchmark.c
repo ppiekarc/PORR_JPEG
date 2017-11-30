@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <memory.h>
 #include "timer.h"
 #include "dct.h"
 #include "huffman.h"

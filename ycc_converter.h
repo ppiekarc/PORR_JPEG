@@ -13,4 +13,4 @@ typedef struct {
     size_t height;
 } ImageYCC;
 
-const ImageYCC const *convert(const ImageRGB const *imageRGB);
+const ImageYCC const *convertImage(const ImageRGB const *imageRGB);
