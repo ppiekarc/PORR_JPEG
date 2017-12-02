@@ -35,12 +35,10 @@ static void dct_for_one_block(int8_t *data, float *fdtbl, int16_t *outdata)
 	float datafloat[64];
 	float temp;
 	int8_t ctr;
-	uint8_t i;
-	for (i=0;i<64;i++) datafloat[i]=data[i];
+	for (size_t i = 0; i < 64; i++) datafloat[i] = data[i];
 
-
-	// Pass 1: process rows.
-	dataptr=datafloat;
+	/* Pass 1: process rows. */
+	dataptr = datafloat;
 	for (ctr = 7; ctr >= 0; ctr--) {
 		tmp0 = dataptr[0] + dataptr[7];
 		tmp7 = dataptr[0] - dataptr[7];
@@ -51,45 +49,39 @@ static void dct_for_one_block(int8_t *data, float *fdtbl, int16_t *outdata)
 		tmp3 = dataptr[3] + dataptr[4];
 		tmp4 = dataptr[3] - dataptr[4];
 
-		// Even part
-
-		tmp10 = tmp0 + tmp3;	// phase 2
+		tmp10 = tmp0 + tmp3;
 		tmp13 = tmp0 - tmp3;
 		tmp11 = tmp1 + tmp2;
 		tmp12 = tmp1 - tmp2;
 
-		dataptr[0] = tmp10 + tmp11; // phase 3
+		dataptr[0] = tmp10 + tmp11;
 		dataptr[4] = tmp10 - tmp11;
 
-		z1 = (tmp12 + tmp13) * ((float) 0.707106781); // c4
-		dataptr[2] = tmp13 + z1;	// phase 5
+		z1 = (tmp12 + tmp13) * ((float) 0.707106781);
+		dataptr[2] = tmp13 + z1;
 		dataptr[6] = tmp13 - z1;
 
-		// Odd part
-
-		tmp10 = tmp4 + tmp5;	// phase 2
+		tmp10 = tmp4 + tmp5;
 		tmp11 = tmp5 + tmp6;
 		tmp12 = tmp6 + tmp7;
 
-		// The rotator is modified from fig 4-8 to avoid extra negations
-		z5 = (tmp10 - tmp12) * ((float) 0.382683433); // c6
-		z2 = ((float) 0.541196100) * tmp10 + z5; // c2-c6
-		z4 = ((float) 1.306562965) * tmp12 + z5; // c2+c6
-		z3 = tmp11 * ((float) 0.707106781); // c4
+		z5 = (tmp10 - tmp12) * ((float) 0.382683433);
+		z2 = ((float) 0.541196100) * tmp10 + z5;
+		z4 = ((float) 1.306562965) * tmp12 + z5;
+		z3 = tmp11 * ((float) 0.707106781);
 
-		z11 = tmp7 + z3;		// phase 5
+		z11 = tmp7 + z3;
 		z13 = tmp7 - z3;
 
-		dataptr[5] = z13 + z2;	// phase 6
+		dataptr[5] = z13 + z2;
 		dataptr[3] = z13 - z2;
 		dataptr[1] = z11 + z4;
 		dataptr[7] = z11 - z4;
 
-		dataptr += 8;		//advance pointer to next row
+		dataptr += 8;
 	}
 
-	// Pass 2: process columns
-
+	/* Pass 2: process columns */
 	dataptr = datafloat;
 	for (ctr = 7; ctr >= 0; ctr--) {
 		tmp0 = dataptr[0] + dataptr[56];
@@ -101,68 +93,58 @@ static void dct_for_one_block(int8_t *data, float *fdtbl, int16_t *outdata)
 		tmp3 = dataptr[24] + dataptr[32];
 		tmp4 = dataptr[24] - dataptr[32];
 
-		//Even part/
-
-		tmp10 = tmp0 + tmp3;	//phase 2
+		tmp10 = tmp0 + tmp3;
 		tmp13 = tmp0 - tmp3;
 		tmp11 = tmp1 + tmp2;
 		tmp12 = tmp1 - tmp2;
 
-		dataptr[0] = tmp10 + tmp11; // phase 3
+		dataptr[0] = tmp10 + tmp11;
 		dataptr[32] = tmp10 - tmp11;
 
-		z1 = (tmp12 + tmp13) * ((float) 0.707106781); // c4
-		dataptr[16] = tmp13 + z1; // phase 5
+		z1 = (tmp12 + tmp13) * ((float) 0.707106781);
+		dataptr[16] = tmp13 + z1;
 		dataptr[48] = tmp13 - z1;
 
-		// Odd part
-
-		tmp10 = tmp4 + tmp5;	// phase 2
+		tmp10 = tmp4 + tmp5;
 		tmp11 = tmp5 + tmp6;
 		tmp12 = tmp6 + tmp7;
 
-		// The rotator is modified from fig 4-8 to avoid extra negations.
-		z5 = (tmp10 - tmp12) * ((float) 0.382683433); // c6
-		z2 = ((float) 0.541196100) * tmp10 + z5; // c2-c6
-		z4 = ((float) 1.306562965) * tmp12 + z5; // c2+c6
-		z3 = tmp11 * ((float) 0.707106781); // c4
+		z5 = (tmp10 - tmp12) * ((float) 0.382683433);
+		z2 = ((float) 0.541196100) * tmp10 + z5;
+		z4 = ((float) 1.306562965) * tmp12 + z5;
+		z3 = tmp11 * ((float) 0.707106781);
 
-		z11 = tmp7 + z3;		// phase 5
+		z11 = tmp7 + z3;
 		z13 = tmp7 - z3;
-		dataptr[40] = z13 + z2; // phase 6
+		dataptr[40] = z13 + z2;
 		dataptr[24] = z13 - z2;
 		dataptr[8] = z11 + z4;
 		dataptr[56] = z11 - z4;
 
-		dataptr++;			// advance pointer to next column
+		dataptr++;
 	}
 
-// Quantize/descale the coefficients, and store into output array
-	for (i = 0; i < 64; i++) {
-		// Apply the quantization and scaling factor
+	for (size_t i = 0; i < 64; i++) {
+		/* quantization and scaling factor */
 		temp = datafloat[i] * fdtbl[i];
 
-		//Round to nearest integer.
-		//Since C does not specify the direction of rounding for negative
-		//quotients, we have to force the dividend positive for portability.
-		//The maximum coefficient size is +-16K (for 12-bit data), so this
-		//code should work for either 16-bit or 32-bit ints.
-
+		/* Round to nearest integer. */
 		outdata[i] = (int16_t) ((int16_t)(temp + 16384.5) - 16384);
 	}
 
+    /* Reorder in ZigZag order */
 	int16_t *t  = malloc(sizeof(int16_t) * 64);
 	memcpy(t, outdata, sizeof(int16_t) * 64);
-	for (i=0;i<=63;i++) outdata[zigzag[i]]=t[i];
+	for (size_t i = 0; i <= 63; i++) outdata[zigzag[i]] = t[i];
     free(t);
 }
 
-int16_t **dct_for_blocks(const int8_t *const data_in, const size_t width, const size_t height, int *num_blocks, const float *dt) {
+int16_t **dct(const int8_t *const data_in, const size_t width, const size_t height, int *num_blocks, const float *dt) {
 	*num_blocks = (int)roundf((width * height) / 64);
     int8_t **d_in = malloc(*num_blocks * sizeof(int8_t *));
 	int16_t **data_out = malloc(*num_blocks * sizeof(int16_t *));
 
-	for (int i = 0; i < *num_blocks; i++) {
+	for (size_t i = 0; i < *num_blocks + 1; i++) {
 		data_out[i] = calloc(64, sizeof(int16_t));
 		d_in[i] = calloc(64, sizeof(int8_t));
 	}
@@ -174,16 +156,11 @@ int16_t **dct_for_blocks(const int8_t *const data_in, const size_t width, const 
 		}
 	}
 
-//#pragma omp parallel private(i) shared(d_in, data_out, num_blocks) num_threads(4)
-	{
-//#pragma omp for schedule (static)
-			for (int i = 0; i < *num_blocks; i++) {
-				dct_for_one_block(d_in[i], dt, data_out[i]);
-				free(d_in[i]);
-			}
-	}
+    for (int i = 0; i < *num_blocks; i++) {
+	    dct_for_one_block(d_in[i], dt, data_out[i]);
+		free(d_in[i]);
+    }
 
 	free(d_in);
 	return data_out;
 }
-

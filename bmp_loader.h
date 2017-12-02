@@ -4,7 +4,6 @@
 #include <stddef.h>
 
 #pragma pack(push,1)
-/* Windows 3.x bitmap full header, including file header */
 typedef struct {
     int8_t magic[2];
     uint32_t filesize;

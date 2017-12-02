@@ -65,9 +65,9 @@ int main(int argc, char *argv[])
 
         const ImageYCC *const image = convertImage(rgb_image);
 
-        int16_t **y_data_out = dct_for_blocks(image->Y, image->width, image->height, &number_of_dct_blocks, fdtbl_Y);
-        int16_t **cb_data_out = dct_for_blocks(image->Cb, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
-        int16_t **cr_data_out = dct_for_blocks(image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
+        int16_t **y_data_out = dct(image->Y, image->width, image->height, &number_of_dct_blocks, fdtbl_Y);
+        int16_t **cb_data_out = dct(image->Cb, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
+        int16_t **cr_data_out = dct(image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
 
         for (size_t block = 0; block < num_blocks; block++) {
             encode_block(y_data_out[block], YDC_HT, YAC_HT, &yctx, block);
@@ -77,6 +77,14 @@ int main(int argc, char *argv[])
 
         timer(&stop);
         *(time_per_each_compression + i) = elapsed_time(start, stop);
+
+        free(y_data_out);
+        free(cr_data_out);
+        free(cb_data_out);
+        free(image->Y);
+        free(image->Cb);
+        free(image->Cr);
+        free(image);
     }
 
     double sum = 0.0;

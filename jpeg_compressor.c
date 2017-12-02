@@ -65,9 +65,9 @@ int main(int argc, char *argv[]) {
     const float *const fdtbl_Y = prepare_quantization_table(luminance_quantization_table);
     const float *const fdtbl_Cb = prepare_quantization_table(chrominance_quantization_table);
 
-    int16_t **y_data_out = dct_for_blocks(image->Y, image->width, image->height, &number_of_dct_blocks, fdtbl_Y);
-    int16_t **cb_data_out = dct_for_blocks(image->Cb, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
-    int16_t **cr_data_out = dct_for_blocks(image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
+    int16_t **y_data_out = dct(image->Y, image->width, image->height, &number_of_dct_blocks, fdtbl_Y);
+    int16_t **cb_data_out = dct(image->Cb, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
+    int16_t **cr_data_out = dct(image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Cb);
 
     printf("[+] Compressing using RLE with Huffman encoding\n");
     init_Huffman_tables();

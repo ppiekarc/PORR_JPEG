@@ -42,9 +42,9 @@ thread_conversion_result *ycc_conversion_with_dct_thread_func(void *arg) {
     thread_conversion_result *conversion_result = malloc(sizeof(thread_conversion_result));
 
     const ImageYCC *const image = convertImage(&rgb_image);
-    conversion_result->y_dct = dct_for_blocks(image->Y, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_luminance);
-    conversion_result->cr_dct = dct_for_blocks(image->Cr, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_chrominance);
-    conversion_result->cb_dct = dct_for_blocks(image->Cb, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_chrominance);
+    conversion_result->y_dct = dct(image->Y, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_luminance);
+    conversion_result->cr_dct = dct(image->Cr, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_chrominance);
+    conversion_result->cb_dct = dct(image->Cb, thread_data->width, thread_data->height, &number_of_dct_blocks, thread_data->fd_chrominance);
     conversion_result->num_of_blocks = number_of_dct_blocks;
     return conversion_result;
 }
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    size_t NUM_OF_COMPRESSIONS = 1000;
+    size_t NUM_OF_COMPRESSIONS = 1;
 
     if (argc == 3 && atoi(argv[2]) > 0) {
         NUM_OF_COMPRESSIONS = atoi(argv[2]);

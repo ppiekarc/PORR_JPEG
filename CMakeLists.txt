@@ -12,8 +12,8 @@ target_link_libraries(jpeg_compressor m)
 
 add_executable(jpeg_vectorized_benchmark dct.c bmp_loader.c ycc_converter.c timer.c huffman.c quantization.c vectorized_jpeg_benchmark.c)
 target_link_libraries(jpeg_vectorized_benchmark m)
-target_compile_options(jpeg_vectorized_benchmark PRIVATE -O3 -ftree-vectorize)
+target_compile_options(jpeg_vectorized_benchmark PRIVATE -O3 -ftree-vectorize -mavx)
 
 add_executable(jpeg_parallel_and_vectorized_benchmark dct.c bmp_loader.c ycc_converter.c timer.c huffman.c quantization.c parallel_and_vectorized_jpeg_benchmark.c)
 target_link_libraries(jpeg_parallel_and_vectorized_benchmark m pthread)
-target_compile_options(jpeg_parallel_and_vectorized_benchmark PRIVATE -O3 -ftree-vectorize)
+target_compile_options(jpeg_parallel_and_vectorized_benchmark PRIVATE -O3 -ftree-vectorize -mavx)
