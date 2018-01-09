@@ -3,8 +3,8 @@
 #include <memory.h>
 #include <math.h>
 #include "dct.h"
-#include "dctCUDA.h"
-#include "dctCUDAv2.h"
+#include "kernels/dctCUDA.h"
+#include "kernels/dctCUDAv2.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "ycc_converter.h"

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "ycc_converter.h"
+#include "../ycc_converter.h"
 #include "dctCUDAv2.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -192,7 +192,7 @@ int16_t *dct_CUDAv2(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, si
 	int16_t *dev_res;
 	int16_t *host_result;
 
-	cudaEvent_t start, stop; // pomiar czasu wykonania j¹dra
+	cudaEvent_t start, stop; // pomiar czasu wykonania jï¿½dra
 	float elapsedTime = 0.0f;
 
 
@@ -224,7 +224,7 @@ int16_t *dct_CUDAv2(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, si
 	checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Y, (void *)dtY, (N) * sizeof(float)));
 	checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Cb, (void *)dtCb, (N) * sizeof(float)));
 
-	/* kopiowanie pamiêci do urz¹dzenia */
+	/* kopiowanie pamiï¿½ci do urzï¿½dzenia */
 	checkCudaErrors(cudaMemcpy(dev_image + (width * height * Y), Y_in, width * height * sizeof(int8_t), cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(dev_image + (width * height * Cb), Cb_in, width * height * sizeof(int8_t), cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(dev_image + (width * height * Cr), Cr_in, width * height * sizeof(int8_t), cudaMemcpyHostToDevice));
