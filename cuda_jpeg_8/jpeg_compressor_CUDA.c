@@ -33,7 +33,7 @@ static DHTinfo* construct_DHTInfo()
 	return dhTinfo;
 }
 
-#define IMAGE_BMP_PATH "resources/air.bmp"
+#define IMAGE_BMP_PATH "resources/lena.bmp"
 #define IMAGE_JPEG_PATH "resources/cc.jpg"
 
 const static uint8_t QUANTIZATION_TABLE_SCALE_FACTOR = 50;
@@ -43,7 +43,17 @@ static channel_encoding_context crctx = { 0 };
 
 int main(int argc, char *argv[]) {
 
-	const char *const bitmap_filename = IMAGE_BMP_PATH;
+	if (argc < 2) {
+		printf("Usage: %s <input_bitmap> <output_jpeg>\n", argv[0]);
+		return 0;
+	}
+
+    const char *bitmap_filename = IMAGE_BMP_PATH;
+
+    if (argc == 2) {
+        bitmap_filename = argv[1];
+    }
+
 	const ImageRGB *const rgb_image = load_true_rgb_bitmap(bitmap_filename);
 	printf("Compressing %s using default JPEG parameters\n", bitmap_filename);
 
@@ -88,7 +98,12 @@ int main(int argc, char *argv[]) {
 		encode_block(image_data_out + (2 * image_size + (block * 64)), CbDC_HT, CbAC_HT, &crctx, block);
 	}
 	
-	const char *const jpeg_filename = IMAGE_JPEG_PATH;
+	const char *jpeg_filename = IMAGE_JPEG_PATH;
+
+    if (argc == 3) {
+        jpeg_filename = argv[2];
+    }
+
 	printf("[+] Writing JPEG to output file %s\n", jpeg_filename);
 
 	static JpegFileDescriptor jpegFileDescriptor;
