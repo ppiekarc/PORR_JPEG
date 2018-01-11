@@ -14,3 +14,5 @@ typedef struct {
 } ImageYCC;
 
 const ImageYCC const *convertImage(const ImageRGB const *imageRGB);
+
+void precalculate_YCbCr_tables();

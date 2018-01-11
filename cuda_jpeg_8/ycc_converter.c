@@ -3,9 +3,9 @@
 #include <stdbool.h>
 #include "ycc_converter.h"
 
-static int32_t YR[256], YG[256], YB[256];
-static int32_t CbR[256], CbG[256], CbB[256];
-static int32_t CrR[256], CrG[256], CrB[256];
+int32_t YR[256], YG[256], YB[256];
+int32_t CbR[256], CbG[256], CbB[256];
+int32_t CrR[256], CrG[256], CrB[256];
 
 #define  Y(R,G,B) ((uint8_t)((YR[(R)] + YG[(G)] + YB[(B)]) >> 16 ) - 128)
 #define Cb(R,G,B) ((uint8_t)((CbR[(R)] + CbG[(G)] + CbB[(B)]) >> 16 ))
@@ -13,7 +13,7 @@ static int32_t CrR[256], CrG[256], CrB[256];
 
 
 static bool ycbcrtables_precalculated = false;
-static void precalculate_YCbCr_tables()
+void precalculate_YCbCr_tables()
 {
     for (uint16_t R = 0; R <= 255; R++) {
         YR[R] = (int32_t)(65536 * 0.299 + 0.5) * R;
