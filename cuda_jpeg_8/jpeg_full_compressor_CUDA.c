@@ -3,8 +3,7 @@
 #include <memory.h>
 #include <math.h>
 #include "dct.h"
-#include "kernels/fullCUDA.h"
-#include "kernels/dctCUDAv2.h"
+#include "kernels/ycc_conversion_with_dct.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "ycc_converter.h"
@@ -36,9 +35,6 @@ static DHTinfo* construct_DHTInfo()
 	return dhTinfo;
 }
 
-#define IMAGE_BMP_PATH "resources/lena.bmp"
-#define IMAGE_JPEG_PATH "resources/cc.jpg"
-
 const static uint8_t QUANTIZATION_TABLE_SCALE_FACTOR = 50;
 static channel_encoding_context yctx = { 0 };
 static channel_encoding_context cbctx = { 0 };
@@ -46,17 +42,12 @@ static channel_encoding_context crctx = { 0 };
 
 int main(int argc, char *argv[]) {
 
-	if (argc < 2) {
+	if (argc != 3) {
 		printf("Usage: %s <input_bitmap> <output_jpeg>\n", argv[0]);
 		return 0;
 	}
 
-    const char *bitmap_filename = IMAGE_BMP_PATH;
-
-    if (argc >= 2) {
-        bitmap_filename = argv[1];
-    }
-
+    const char *bitmap_filename = argv[1];
     printf("Opening bitmap: %s\n", bitmap_filename);
 	const ImageRGB *const rgb_image = load_true_rgb_bitmap(bitmap_filename);
 	printf("Compressing %s using default JPEG parameters\n", bitmap_filename);
@@ -66,9 +57,6 @@ int main(int argc, char *argv[]) {
 
 	timer(&start);
 	printf("[+] Converting %dx%d RGB bitmap into YCC color space\n", rgb_image->width, rgb_image->height);
-//	const ImageYCC *const image = convertWithCUDA2(rgb_image->R, rgb_image->G, rgb_image->B, rgb_image->height, rgb_image->width);
-
-//	release_bitmap(rgb_image);
 
 	const int number_of_dct_blocks = (int)roundf((rgb_image->width * rgb_image->height) / 64);
 	printf("[+] Running DCT & Quantization on %i 8x8 blocks\n", number_of_dct_blocks);
@@ -82,8 +70,9 @@ int main(int argc, char *argv[]) {
 	const float *const fdtbl_Cb = prepare_quantization_table(chrominance_quantization_table);
 
 
-	int16_t *image_data_out = full_dct_CUDAv2(rgb_image->R, rgb_image->G, rgb_image->B, rgb_image->width, rgb_image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb,
-    YR, YG, YB, CbR, CbG, CbB, CrR, CrG, CrB);
+	int16_t *image_data_out = ycc_conversion_with_dct(rgb_image->R, rgb_image->G, rgb_image->B, rgb_image->width,
+													  rgb_image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb,
+													  YR, YG, YB, CbR, CbG, CbB, CrR, CrG, CrB);
 
 	printf("[+] Compressing using RLE with Huffman encoding\n");
 	init_Huffman_tables();
@@ -103,12 +92,7 @@ int main(int argc, char *argv[]) {
 		encode_block(image_data_out + (2 * image_size + (block * 64)), CbDC_HT, CbAC_HT, &crctx, block);
 	}
 	
-	const char *jpeg_filename = IMAGE_JPEG_PATH;
-
-    if (argc == 3) {
-        jpeg_filename = argv[2];
-    }
-
+	const char *jpeg_filename = argv[2];
 	printf("[+] Writing JPEG to output file %s\n", jpeg_filename);
 
 	static JpegFileDescriptor jpegFileDescriptor;
@@ -132,7 +116,6 @@ int main(int argc, char *argv[]) {
 	timer(&stop);
 	
 	printf("Compression of %s completed in %.3f ms\n", bitmap_filename, elapsed_time(start, stop));
-
 
 	free(image_data_out);
 

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "dct.h"
-#include "kernels/fullCUDA.h"
+#include "kernels/ycc_conversion_with_dct.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "huffman.h"
@@ -72,8 +72,9 @@ int main(int argc, char *argv[]) {
 
         timer(&start);
 
-        int16_t *image_data_out = full_dct_CUDAv2(rgb_image->R, rgb_image->G, rgb_image->B, rgb_image->width, rgb_image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb,
-                                                  YR, YG, YB, CbR, CbG, CbB, CrR, CrG, CrB);
+        int16_t *image_data_out = ycc_conversion_with_dct(rgb_image->R, rgb_image->G, rgb_image->B, rgb_image->width,
+                                                          rgb_image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb,
+                                                          YR, YG, YB, CbR, CbG, CbB, CrR, CrG, CrB);
 
         for (size_t block = 0; block < number_of_dct_blocks; block++) {
             encode_block(image_data_out + ((block * 64)), YDC_HT, YAC_HT, &yctx, block);
