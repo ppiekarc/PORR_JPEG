@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <math.h>
 #include "dct.h"
-#include "kernels/dctCUDAv2.h"
+#include "kernels/dct_with_quantization.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "ycc_converter.h"
@@ -65,7 +65,8 @@ int main(int argc, char *argv[]) {
 	const float *const fdtbl_Y = prepare_quantization_table(luminance_quantization_table);
 	const float *const fdtbl_Cb = prepare_quantization_table(chrominance_quantization_table);
 
-	int16_t *image_data_out = dct_CUDAv2(image->Y, image->Cb, image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb);
+	int16_t *image_data_out = dct_with_quantization(image->Y, image->Cb, image->Cr, image->width, image->height,
+													&number_of_dct_blocks, fdtbl_Y, fdtbl_Cb);
 
 	printf("[+] Compressing using RLE with Huffman encoding\n");
 	init_Huffman_tables();

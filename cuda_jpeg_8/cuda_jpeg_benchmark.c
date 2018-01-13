@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <math.h>
 #include "dct.h"
-#include "kernels/dctCUDAv2.h"
+#include "kernels/dct_with_quantization.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "huffman.h"
@@ -69,7 +69,8 @@ int main(int argc, char *argv[]) {
 
         const ImageYCC *const image = convertImage(rgb_image);
 
-        int16_t *image_data_out = dct_CUDAv2(image->Y, image->Cb, image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb);
+        int16_t *image_data_out = dct_with_quantization(image->Y, image->Cb, image->Cr, image->width, image->height,
+                                                        &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb);
 
         for (size_t block = 0; block < number_of_dct_blocks; block++) {
             encode_block(image_data_out + ((block * 64)), YDC_HT, YAC_HT, &yctx, block);

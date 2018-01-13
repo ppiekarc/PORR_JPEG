@@ -1,20 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "ycc_conversion_with_dct.h"
+#include "../ycc_converter.h"
+#include "dct_with_quantization.h"
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "helper_cuda.h"
 #include "helper_timer.h"
 
 #define N 64
-#define R_CHANNEL 0
-#define G_CHANNEL 1
-#define B_CHANNEL 2
-
-#define Y_CHANNEL 0
-#define Cb_CHANNEL 1
-#define Cr_CHANNEL 2
+#define Y 0
+#define Cb 1
+#define Cr 2
 
 __constant__ static uint8_t zigzag[64] = {
         0, 1, 5, 6, 14, 15, 27, 28,
@@ -30,27 +27,12 @@ __constant__ static uint8_t zigzag[64] = {
 __constant__ static float fdtbl_Y[N];
 __constant__ static float fdtbl_Cb[N];
 
-__constant__ static int32_t YR[256];
-__constant__ static int32_t YG[256];
-__constant__ static int32_t YB[256];
-
-__constant__ static int32_t CbR[256];
-__constant__ static int32_t CbG[256];
-__constant__ static int32_t CbB[256];
-
-__constant__ static int32_t CrR[256];
-__constant__ static int32_t CrG[256];
-__constant__ static int32_t CrB[256];
-
-#define  Y(R, G, B) ((uint8_t)((YR[(R)] + YG[(G)] + YB[(B)]) >> 16 ) - 128)
-#define Cb(R, G, B) ((uint8_t)((CbR[(R)] + CbG[(G)] + CbB[(B)]) >> 16 ))
-#define Cr(R, G, B) ((uint8_t)((CrR[(R)] + CrG[(G)] + CrB[(B)]) >> 16 ))
 
 #define image_(t, index) image[(t * width * height) + index]
 #define result_(t, b, p) result[(t * width * height) + (b * 64) + p]
 
-__global__ static void dtf_kernel(int16_t *result, uint8_t *image, size_t width, size_t height) {
-
+__global__ static void dtf_kernel(int16_t *result, int8_t *image, size_t width, size_t height) {
+    int type = blockIdx.z;
     float tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     float tmp10, tmp11, tmp12, tmp13;
     float z1, z2, z3, z4, z5, z11, z13;
@@ -62,21 +44,13 @@ __global__ static void dtf_kernel(int16_t *result, uint8_t *image, size_t width,
     size_t j = threadIdx.x;
     size_t i = threadIdx.y;
 
-    const unsigned int channel_type = blockIdx.z;
     if (i == 0) {
         for (size_t i = 0; i < 8; i++) {
-            size_t index = (blockIdx.x * 8) + i + (width * blockIdx.y * 8) + width * j;
-            if (channel_type == Y_CHANNEL) {
-                datafloat[i + (8 * j)] = (int8_t) Y(image_(R_CHANNEL, index), image_(G_CHANNEL, index),
-                                                    image_(B_CHANNEL, index));
-            } else if (channel_type == Cb_CHANNEL) {
-                datafloat[i + (8 * j)] = (int8_t) Cb(image_(R_CHANNEL, index), image_(G_CHANNEL, index),
-                                                     image_(B_CHANNEL, index));
-            } else {
-                datafloat[i + (8 * j)] = (int8_t) Cr(image_(R_CHANNEL, index), image_(G_CHANNEL, index),
-                                                     image_(B_CHANNEL, index));
-            }
+            int index = (blockIdx.x * 8) + i + (width * blockIdx.y * 8) + width * j;
+            datafloat[i + (8 * j)] = image_(type, index);
         }
+
+
 
         /* Pass 1: process rows. */
         dataptr = datafloat + (j * 8);
@@ -118,10 +92,12 @@ __global__ static void dtf_kernel(int16_t *result, uint8_t *image, size_t width,
         dataptr[1] = z11 + z4;
         dataptr[7] = z11 - z4;
     }
+
     /* Pass 2: process columns */
     if (i == 1) {
         dataptr = datafloat + j;
 
+        //for (ctr = 7; ctr >= 0; ctr--) {
         tmp0 = dataptr[0] + dataptr[56];
         tmp7 = dataptr[0] - dataptr[56];
         tmp1 = dataptr[8] + dataptr[48];
@@ -159,7 +135,7 @@ __global__ static void dtf_kernel(int16_t *result, uint8_t *image, size_t width,
         dataptr[8] = z11 + z4;
         dataptr[56] = z11 - z4;
 
-        fdtbl = (channel_type == 0) ? fdtbl_Y : fdtbl_Cb;
+        fdtbl = (type == Y) ? fdtbl_Y : fdtbl_Cb;
 
         for (size_t i = 0; i < 8; i++) {
             /* quantization and scaling factor */
@@ -167,17 +143,15 @@ __global__ static void dtf_kernel(int16_t *result, uint8_t *image, size_t width,
             /* Round to nearest integer. */
             size_t block_nr = blockIdx.x + (gridDim.x * blockIdx.y);
             size_t pixel_nr = zigzag[i + 8 * j];
-            result_(channel_type, block_nr, pixel_nr) = (int16_t) ((int16_t) (temp + 16384.5) - 16384);
+            result_(type, block_nr, pixel_nr) = (int16_t) ((int16_t) (temp + 16384.5) - 16384);
         }
     }
 }
 
-int16_t *ycc_conversion_with_dct(uint8_t *R, uint8_t *G, uint8_t *B, size_t width, size_t height, int *num_blocks,
-                                 const float *dtY, const float *dtCb, int32_t *tYR, int32_t *tYG,
-                                 int32_t *tYB, int32_t *tCbR, int32_t *tCbG, int32_t *tCbB, int32_t *tCrR,
-                                 int32_t *tCrG, int32_t *tCrB) {
 
-    uint8_t *dev_image; /* zawiera 3 skladowe obrazka (Y, Cb, Cr)*/
+int16_t *dct_with_quantization(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, size_t height, int *num_blocks,
+                               const float *dtY, const float *dtCb) {
+    int8_t *dev_image; /* zawiera 3 skladowe obrazka (Y, Cb, Cr)*/
 
     /* zmienne zawierja tablice 3 elemntowa dla 3 skladowych obrazka (Y, Cb, Cr)
     kazdej skladowej przypozadkowana jest tablica blokow
@@ -188,12 +162,14 @@ int16_t *ycc_conversion_with_dct(uint8_t *R, uint8_t *G, uint8_t *B, size_t widt
     cudaEvent_t start, stop; // pomiar czasu wykonania j�dra
     float elapsedTime = 0.0f;
 
+
     int grid_size_x = (int) (width / 8); /* liczba blokow watkow w sieci w kierunku x */
     int grid_size_y = (int) (height / 8); /* liczba blokow watkow w sieci w kierunku y */
 
     /* rozmiar siatki grid_size_x * grid_size_y * 3 skladowe obrazka (Y, Cb, Cr) */
     dim3 dimGrid(grid_size_x, grid_size_y, 3);
     /* rozmiar bloku watkow, zawieral bedzie 1 blok do obliczenia DCT*/
+    //dim3 dimBlock(1, 1);
     dim3 dimBlock(8, 2);
     /* rozmiar pamieci wspoldzielonej przez 1 blok watkow */
     size_t shShize = (64 * sizeof(int8_t));
@@ -213,24 +189,12 @@ int16_t *ycc_conversion_with_dct(uint8_t *R, uint8_t *G, uint8_t *B, size_t widt
     checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Y, (void *) dtY, (N) * sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Cb, (void *) dtCb, (N) * sizeof(float)));
 
-    checkCudaErrors(cudaMemcpyToSymbol(YR, (void *) tYR, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(YB, (void *) tYB, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(YG, (void *) tYG, (256) * sizeof(int32_t)));
-
-    checkCudaErrors(cudaMemcpyToSymbol(CbR, (void *) tCbR, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(CbG, (void *) tCbG, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(CbB, (void *) tCbB, (256) * sizeof(int32_t)));
-
-    checkCudaErrors(cudaMemcpyToSymbol(CrR, (void *) tCrR, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(CrG, (void *) tCrG, (256) * sizeof(int32_t)));
-    checkCudaErrors(cudaMemcpyToSymbol(CrB, (void *) tCrB, (256) * sizeof(int32_t)));
-
     /* kopiowanie pami�ci do urz�dzenia */
-    checkCudaErrors(cudaMemcpy(dev_image + (width * height * R_CHANNEL), R, width * height * sizeof(int8_t),
+    checkCudaErrors(cudaMemcpy(dev_image + (width * height * Y), Y_in, width * height * sizeof(int8_t),
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(dev_image + (width * height * G_CHANNEL), G, width * height * sizeof(int8_t),
+    checkCudaErrors(cudaMemcpy(dev_image + (width * height * Cb), Cb_in, width * height * sizeof(int8_t),
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(dev_image + (width * height * B_CHANNEL), B, width * height * sizeof(int8_t),
+    checkCudaErrors(cudaMemcpy(dev_image + (width * height * Cr), Cr_in, width * height * sizeof(int8_t),
                                cudaMemcpyHostToDevice));
 
     checkCudaErrors(cudaEventCreate(&start));
@@ -253,6 +217,7 @@ int16_t *ycc_conversion_with_dct(uint8_t *R, uint8_t *G, uint8_t *B, size_t widt
 
     /* Kopiowanie wynikow z pamieci urzadzenia do hosta */
     checkCudaErrors(cudaMemcpy(host_result, dev_res, 3 * width * height * sizeof(int16_t), cudaMemcpyDeviceToHost));
+
 
     checkCudaErrors(cudaEventDestroy(start));
     checkCudaErrors(cudaEventDestroy(stop));

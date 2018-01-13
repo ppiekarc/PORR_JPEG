@@ -20,8 +20,8 @@ cuda_add_executable(cuda_jpeg_compressor
         cuda_jpeg_8/huffman.c
         cuda_jpeg_8/quantization.c
         cuda_jpeg_8/jpeg_compressor_CUDA.c
-        cuda_jpeg_8/kernels/dctCUDAv2.cu
-        cuda_jpeg_8/kernels/dctCUDAv2.h
+        cuda_jpeg_8/kernels/dct_with_quantization.cu
+        cuda_jpeg_8/kernels/dct_with_quantization.h
         cuda_jpeg_8/jpeg_writer.c
         )
 
@@ -42,20 +42,6 @@ cuda_add_executable(cuda_full_jpeg_compressor
 
 target_link_libraries(cuda_full_jpeg_compressor m)
 
-cuda_add_executable(cuda_naive_jpeg_compressor
-        cuda_jpeg_8/dct.c
-        cuda_jpeg_8/bmp_loader.c
-        cuda_jpeg_8/ycc_converter.c
-        cuda_jpeg_8/timer.c
-        cuda_jpeg_8/huffman.c
-        cuda_jpeg_8/quantization.c
-        cuda_jpeg_8/jpeg_compressor_Cuda_naive.c
-        cuda_jpeg_8/kernels/dctCUDA.cu
-        cuda_jpeg_8/kernels/dctCUDA.h
-        cuda_jpeg_8/jpeg_writer.c
-        )
-
-target_link_libraries(cuda_naive_jpeg_compressor m)
 
 cuda_add_executable(cuda_jpeg_benchmark
         cuda_jpeg_8/dct.c
@@ -65,8 +51,8 @@ cuda_add_executable(cuda_jpeg_benchmark
         cuda_jpeg_8/huffman.c
         cuda_jpeg_8/quantization.c
         cuda_jpeg_8/cuda_jpeg_benchmark.c
-        cuda_jpeg_8/kernels/dctCUDAv2.cu
-        cuda_jpeg_8/kernels/dctCUDAv2.h
+        cuda_jpeg_8/kernels/dct_with_quantization.cu
+        cuda_jpeg_8/kernels/dct_with_quantization.h
         )
 
 target_link_libraries(cuda_jpeg_benchmark m)

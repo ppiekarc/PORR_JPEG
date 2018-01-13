@@ -4,8 +4,6 @@
 #include <memory.h>
 #include <stdint.h>
 
-#define alpha(u) ((u == 0) ? 1 / sqrt(8.0f) : 0.5f)
-
 static uint8_t zigzag[64]={ 0, 1, 5, 6,14,15,27,28,
 						 2, 4, 7,13,16,26,29,42,
 						 3, 8,12,17,25,30,41,43,
@@ -14,17 +12,6 @@ static uint8_t zigzag[64]={ 0, 1, 5, 6,14,15,27,28,
 						 20,22,33,38,46,51,55,60,
 						 21,34,37,47,50,56,59,61,
 						 35,36,48,49,57,58,62,63 };
-
-static float cos_table[8][8] = {
-	{ 1.0000, 0.9808, 0.9239, 0.8315, 0.7071, 0.5556, 0.3827, 0.1951 },
-	{ 1.0000, 0.8315, 0.3827, -0.1951, -0.7071, -0.9808, -0.9239, -0.5556 },
-	{ 1.0000, 0.5556 ,-0.3827 ,-0.9808 ,-0.7071, 0.1951, 0.9239, 0.8315 },
-	{ 1.0000, 0.1951, -0.9239, -0.5556, 0.7071, 0.8315, -0.3827, -0.9808 },
-	{ 1.0000, -0.1951, -0.9239, 0.5556, 0.7071, -0.8315, -0.3827, 0.9808 },
-	{ 1.0000, -0.5556, -0.3827, 0.9808, -0.7071, -0.1951, 0.9239, -0.8315 },
-	{ 1.0000, -0.8315, 0.3827, 0.1951, -0.7071, 0.9808, -0.9239, 0.5556 },
-	{ 1.0000, -0.9808, 0.9239, -0.8315, 0.7071, -0.5556, 0.3827, -0.1951 }
-};
 
 static void load_8x8_block_at(const int8_t *const pInt, const size_t xpos, const size_t ypos, const size_t width, int8_t *p_dest) {
 	size_t pos = 0;
@@ -37,34 +24,6 @@ static void load_8x8_block_at(const int8_t *const pInt, const size_t xpos, const
 		}
 		block_location += width - 8;
 	}
-}
-
-static void dct_for_one_block_naive(int8_t *data, uint8_t *fdtbl, int16_t *outdata)
-{
-	int u, v, i, j;
-	float G;
-	short converted_value;
-	
-		
-		for (u = 0; u < 8; u++) {
-		for (v = 0; v < 8; v++) {
-			G = 0;
-			for (i = 0; i < 8; i++) {
-				for (j = 0; j < 8; j++) {
-					converted_value = data[i + (8 * j)];
-					G += converted_value * cos_table[i][u] * cos_table[j][v];
-					
-				}
-				
-			}
-			
-			G = (((alpha(i)) * (alpha(j))) * G) / fdtbl[u + (v * 8)];
-			int index_zigzag = zigzag[u + (v * 8)];
-			outdata[index_zigzag] = (int16_t)((int16_t)(G + 16384.5) - 16384);
-			
-		}
-	}
-
 }
 
 static void dct_for_one_block(int8_t *data, float *fdtbl, int16_t *outdata)
@@ -208,28 +167,3 @@ int16_t **dct(const int8_t *const data_in, const size_t width, const size_t heig
 	free(d_in);
 	return data_out;
 }
-
-int16_t **dct_naive(const int8_t *const data_in, const size_t width, const size_t height, int *num_blocks, const uint8_t *dt) {
-	*num_blocks = (int)roundf((width * height) / 64);
-	int8_t **d_in = malloc(*num_blocks * sizeof(int8_t *));
-	int16_t **data_out = malloc(*num_blocks * sizeof(int16_t *));
-
-	for (size_t i = 0; i < *num_blocks; i++) {
-		data_out[i] = calloc(64, sizeof(int16_t));
-		d_in[i] = calloc(64, sizeof(int8_t));
-	}
-	size_t n = 0;
-	for (size_t ypos = 0; ypos < height; ypos += 8) {
-		for (size_t xpos = 0; xpos < width; xpos += 8) {
-			load_8x8_block_at(data_in, xpos, ypos, width, d_in[n++]);
-		}
-	}
-	for (int i = 0; i < *num_blocks; i++) {
-		dct_for_one_block_naive(d_in[i], dt, data_out[i]);
-		free(d_in[i]);
-	}
-
-	free(d_in);
-	return data_out;
-}
-
