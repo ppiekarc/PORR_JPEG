@@ -246,8 +246,8 @@ int16_t *dct_CUDAv2(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, si
 
 	checkCudaErrors(cudaEventElapsedTime(&elapsedTime, start, stop));
 
-	printf("GPU (kernel) time = %.3f ms \n",
-		elapsedTime);
+//	printf("GPU (kernel) time = %.3f ms \n",
+//		elapsedTime);
 
 	/* Kopiowanie wynikow z pamieci urzadzenia do hosta */
 	checkCudaErrors(cudaMemcpy(host_result, dev_res, 3 * width * height * sizeof(int16_t), cudaMemcpyDeviceToHost));
