@@ -195,10 +195,15 @@ int16_t **dct(const int8_t *const data_in, const size_t width, const size_t heig
 			load_8x8_block_at(data_in, xpos, ypos, width, d_in[n++]);
 		}
 	}
-    for (int i = 0; i < *num_blocks; i++) {
-	    dct_for_one_block(d_in[i], dt, data_out[i]);
-		free(d_in[i]);
-    }
+    int i = 0;
+#pragma omp parallel private(i) shared(d_in, data_out, num_blocks) num_threads(8)
+	{
+#pragma omp for schedule (static)
+		for (i = 0; i < *num_blocks; i++) {
+			dct_for_one_block(d_in[i], dt, data_out[i]);
+			free(d_in[i]);
+		}
+	}
 
 	free(d_in);
 	return data_out;

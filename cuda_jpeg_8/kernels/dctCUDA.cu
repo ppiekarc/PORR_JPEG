@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "ycc_converter.h"
+#include "../ycc_converter.h"
 #include "dctCUDA.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "helper_cuda.h"
 #include "helper_timer.h"
-#include "huffman.h"
+#include "../huffman.h"
 
 #define N 64
 #define Y 0
@@ -36,27 +36,29 @@ __constant__ static float cos_table[8][8] = {
 	{ 1.0000, -0.9808, 0.9239, -0.8315, 0.7071, -0.5556, 0.3827, -0.1951 }
 };
 
-__constant__ static uint8_t fdtbl_Y[64] = {
-	16,  11,  10,  16,  24,  40,  51,  61,
-	12,  12,  14,  19,  26,  58,  60,  55,
-	14,  13,  16,  24,  40,  57,  69,  56,
-	14,  17,  22,  29,  51,  87,  80,  62,
-	18,  22,  37,  56,  68, 109, 103,  77,
-	24,  35,  55,  64,  81, 104, 113,  92,
-	49,  64,  78,  87, 103, 121, 120, 101,
-	72,  92,  95,  98, 112, 100, 103,  99
-};
-__constant__ static uint8_t fdtbl_Cb[64] = {
-	17,  18,  24,  47,  99,  99,  99,  99,
-	18,  21,  26,  66,  99,  99,  99,  99,
-	24,  26,  56,  99,  99,  99,  99,  99,
-	47,  66,  99,  99,  99,  99,  99,  99,
-	99,  99,  99,  99,  99,  99,  99,  99,
-	99,  99,  99,  99,  99,  99,  99,  99,
-	99,  99,  99,  99,  99,  99,  99,  99,
-	99,  99,  99,  99,  99,  99,  99,  99
-};
+//__constant__ static uint8_t fdtbl_Y[64] = {
+//	16,  11,  10,  16,  24,  40,  51,  61,
+//	12,  12,  14,  19,  26,  58,  60,  55,
+//	14,  13,  16,  24,  40,  57,  69,  56,
+//	14,  17,  22,  29,  51,  87,  80,  62,
+//	18,  22,  37,  56,  68, 109, 103,  77,
+//	24,  35,  55,  64,  81, 104, 113,  92,
+//	49,  64,  78,  87, 103, 121, 120, 101,
+//	72,  92,  95,  98, 112, 100, 103,  99
+//};
+//__constant__ static uint8_t fdtbl_Cb[64] = {
+//	17,  18,  24,  47,  99,  99,  99,  99,
+//	18,  21,  26,  66,  99,  99,  99,  99,
+//	24,  26,  56,  99,  99,  99,  99,  99,
+//	47,  66,  99,  99,  99,  99,  99,  99,
+//	99,  99,  99,  99,  99,  99,  99,  99,
+//	99,  99,  99,  99,  99,  99,  99,  99,
+//	99,  99,  99,  99,  99,  99,  99,  99,
+//	99,  99,  99,  99,  99,  99,  99,  99
+//};
 
+__constant__ static uint8_t fdtbl_Y[64];
+__constant__ static uint8_t fdtbl_Cb[64];
 
 
 #define alpha(u) ((u == 0) ? 1 / sqrt(8.0f) : 0.5f)
@@ -108,7 +110,7 @@ __global__ static void dtf_kernel(int16_t *result, int8_t *image, size_t width, 
 }
 
 
-int16_t *dct_CUDA(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, size_t height, int *num_blocks)
+int16_t *dct_CUDA(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, size_t height, int *num_blocks, const float *dtY, const float *dtCb)
 {
 	int8_t *dev_image; /* zawiera 3 skladowe obrazka (Y, Cb, Cr)*/
 
@@ -118,7 +120,7 @@ int16_t *dct_CUDA(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, size
 	int16_t *dev_res;
 	int16_t *dc_res;
 
-	cudaEvent_t start, stop; // pomiar czasu wykonania j¹dra
+	cudaEvent_t start, stop; // pomiar czasu wykonania jï¿½dra
 
 	int16_t *host_tmp = (int16_t *)malloc(3 * width * height * sizeof(int16_t));
 	size_t number_of_pixels = width * height;
@@ -144,7 +146,10 @@ int16_t *dct_CUDA(int8_t *Y_in, int8_t *Cb_in, int8_t *Cr_in, size_t width, size
 	/* alokacja dla danych wyjsciowych z urzadzenia*/
 	checkCudaErrors(cudaMalloc((void **)&dev_res, 3 * (width * height * sizeof(int16_t))));
 
-	/* kopiowanie pamiêci do urz¹dzenia */
+    checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Y, (void *)dtY, (N) * sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(fdtbl_Cb, (void *)dtCb, (N) * sizeof(float)));
+
+	/* kopiowanie pamiï¿½ci do urzï¿½dzenia */
 	checkCudaErrors(cudaMemcpy(dev_image + (width * height * Y), 
 		Y_in, width * height * sizeof(int8_t), cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(dev_image + (width * height * Cb), 

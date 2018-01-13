@@ -4,7 +4,6 @@
 #include <math.h>
 #include "dct.h"
 #include "kernels/dctCUDA.h"
-#include "kernels/dctCUDAv2.h"
 #include "timer.h"
 #include "bmp_loader.h"
 #include "ycc_converter.h"
@@ -33,9 +32,6 @@ static DHTinfo* construct_DHTInfo()
 	return dhTinfo;
 }
 
-#define IMAGE_BMP_PATH "resources/air.bmp"
-#define IMAGE_JPEG_PATH "resources/cc.jpg"
-
 const static uint8_t QUANTIZATION_TABLE_SCALE_FACTOR = 50;
 static channel_encoding_context yctx = { 0 };
 static channel_encoding_context cbctx = { 0 };
@@ -43,7 +39,12 @@ static channel_encoding_context crctx = { 0 };
 
 int main(int argc, char *argv[]) {
 
-	const char *const bitmap_filename = IMAGE_BMP_PATH;
+	if (argc != 3) {
+		printf("Usage: %s <input_bitmap> <output_jpeg>\n", argv[0]);
+		return 0;
+	}
+
+	const char *bitmap_filename = argv[1];
 	const ImageRGB *const rgb_image = load_true_rgb_bitmap(bitmap_filename);
 	printf("Compressing %s using default JPEG parameters\n", bitmap_filename);
 
@@ -56,8 +57,16 @@ int main(int argc, char *argv[]) {
 
 	const int number_of_dct_blocks = (int)roundf((image->width * image->height) / 64);
 	printf("[+] Running DCT & Quantization on %i 8x8 blocks\n", number_of_dct_blocks);
-	
-	int16_t *image_data_out = dct_CUDA(image->Y, image->Cb, image->Cr, image->width, image->height, &number_of_dct_blocks);
+
+    static uint8_t chrominance_quantization_table[64];
+    static uint8_t luminance_quantization_table[64];
+    scale_quantization_table_with_zigzag(std_luminance_qt, QUANTIZATION_TABLE_SCALE_FACTOR, luminance_quantization_table);
+    scale_quantization_table_with_zigzag(std_chrominance_qt, QUANTIZATION_TABLE_SCALE_FACTOR, chrominance_quantization_table);
+
+    const float *const fdtbl_Y = prepare_quantization_table(luminance_quantization_table);
+    const float *const fdtbl_Cb = prepare_quantization_table(chrominance_quantization_table);
+
+	int16_t *image_data_out = dct_CUDA(image->Y, image->Cb, image->Cr, image->width, image->height, &number_of_dct_blocks, fdtbl_Y, fdtbl_Cb);
 
 	printf("[+] Compressing using RLE with Huffman encoding\n");
 	init_Huffman_tables();
@@ -78,7 +87,7 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	const char *const jpeg_filename = IMAGE_JPEG_PATH;
+    const char *jpeg_filename = argv[2];
 	printf("[+] Writing JPEG to output file %s\n", jpeg_filename);
 
 	static JpegFileDescriptor jpegFileDescriptor;
